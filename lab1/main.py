@@ -7,9 +7,9 @@ import requests
 # ==========================================
 url = ("https://api.open-elevation.com/api/v1/lookup?locations=48.164214,%2024.536044|48.164983,%2024.534836|48.165605,%2024.534068|48.166228,%2024.532915|48.166777,%2024.531927|48.167326,%2024.530884|48.167011,%2024.530061|48.166053,%2024.528039|48.166655,%2024.526064|48.166497,%2024.523574|48.166128,%2024.520214|48.165416,%2024.517170|48.164546,%2024.514640|48.163412,%2024.512980|48.162331,%2024.511715|48.162015,%2024.509462|48.162147,%2024.506932|48.161751,%2024.504244|48.161197,%2024.501793|48.160580,%2024.500537|48.160250,%2024.500106")
 
-response = requests.get(url)  # [cite: 103]
-data = response.json()  # [cite: 103]
-results = data["results"]  # [cite: 105]
+response = requests.get(url)
+data = response.json()
+results = data["results"]
 
 n = len(results)
 print(f"Кількість вузлів: {n}")
@@ -140,6 +140,39 @@ for num_nodes in [10, 15, 20]:
     print(f"{num_nodes} вузлів")
     print(f"Максимальна похибка: {np.max(error)}")
     print(f"Середня похибка: {np.mean(error)}")
+
+
+
+# ==========================================
+# 5. Характеристики маршруту
+# ==========================================
+print("\n--- Додаткове завдання ---")
+
+print(f"Загальна довжина маршруту (м): {distances[-1]:.2f}")
+
+total_ascent = sum(max(elevations[i] - elevations[i - 1], 0) for i in range(1, n))
+print(f"Сумарний набір висоти (м): {total_ascent:.2f}")
+
+total_descent = sum(max(elevations[i - 1] - elevations[i], 0) for i in range(1, n))
+print(f"Сумарний спуск (м): {total_descent:.2f}")
+
+# Аналіз градієнта
+grad_full = np.gradient(y_ref_dense, x_dense) * 100
+
+print(f"Максимальний підйом (%): {np.max(grad_full):.2f}")
+print(f"Максимальний спуск (%): {np.min(grad_full):.2f}")
+print(f"Середній градієнт (%): {np.mean(np.abs(grad_full)):.2f}")
+
+# Механічна енергія
+mass = 80  # кг
+g = 9.81
+energy = mass * g * total_ascent
+
+print(f"Механічна робота (Дж): {energy:.2f}")
+print(f"Механічна робота (кДж): {energy / 1000:.2f}")
+print(f"Енергія (ккал): {energy / 4184:.2f}")
+
+
 
 # ==========================================
 # 5. Побудова графіків
