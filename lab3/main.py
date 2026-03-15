@@ -125,7 +125,7 @@ def main():
     calc_and_print_cubic_splines(x, y)
 
     # 3. Вибір оптимального ступеня полінома
-    max_degree = 10
+    max_degree = 12
     variances = []
 
     for m in range(1, max_degree + 1):
@@ -150,7 +150,7 @@ def main():
     y_future = polynomial(x_future, coef_opt)
 
     # 6. Похибка апроксимації
-    error_y = [yt - ya for yt, ya in zip(y, y_approx_opt)]
+    error_y = [abs(yt - ya) for yt, ya in zip(y, y_approx_opt)]
 
     # 7. Вивід результатів у консоль
     print("Дисперсії для різних ступенів (m=1..10):")

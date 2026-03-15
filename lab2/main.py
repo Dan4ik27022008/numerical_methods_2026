@@ -56,7 +56,7 @@ def sweep_method(a, b, c, d):
     return x
 
 
-def cubic_splines_coefficients(x, y):
+def cubic_splines_coefficients(x, y, prnt):
     """Обчислення коефіцієнтів кубічних сплайнів та їх виведення у консолі."""
     n = len(x) - 1
     h = [x[i + 1] - x[i] for i in range(n)]
@@ -76,10 +76,11 @@ def cubic_splines_coefficients(x, y):
         b_coef[i] = (y[i + 1] - y[i]) / h[i] - h[i] * (c_coef[i + 1] + 2 * c_coef[i]) / 3
         d_coef[i] = (c_coef[i + 1] - c_coef[i]) / (3 * h[i])
 
-    print("\n--- Коефіцієнти кубічних сплайнів ---")
-    for i in range(n):
-        print(
-            f"Відрізок {i} [{x[i]}-{x[i + 1]}]: a={a_coef[i]:.4f}, b={b_coef[i]:.4f}, c={c_coef[i]:.4f}, d={d_coef[i]:.4f}")
+    if prnt:
+        print("\n--- Коефіцієнти кубічних сплайнів ---")
+        for i in range(n):
+            print(
+                f"Відрізок {i} [{x[i]}-{x[i + 1]}]: a={a_coef[i]:.4f}, b={b_coef[i]:.4f}, c={c_coef[i]:.4f}, d={d_coef[i]:.4f}")
     return a_coef, b_coef, c_coef, d_coef
 
 
@@ -129,7 +130,7 @@ print("Вхідні дані (розмір вибірки):", x_data)
 print("Вхідні дані (час, с):", y_data)
 
 # Обчислення сплайнів
-cubic_splines_coefficients(x_data, y_data)
+cubic_splines_coefficients(x_data, y_data, True)
 
 # Інтерполяція Ньютона
 newton_coefs = divided_differences(x_data, y_data)
@@ -157,40 +158,66 @@ plt.grid(True)
 plt.show()
 
 # ==========================================
-# 5. Дослідницька частина (Ефект Рунге)
+# 5. Дослідницька частина (Ефект Рунге без scipy)
 # ==========================================
-print("\n--- Дослідницька частина: Ефект Рунге ---")
+print("\n--- Дослідницька частина: Ефект Рунге на базі датасету ---")
 
 
-# Використаємо класичну функцію Рунге: f(x) = 1 / (1 + 25x^2) на [-1, 1]
-def runge_func(x):
-    return 1 / (1 + 25 * x ** 2)
+# Власна функція для обчислення значення кубічного сплайна у будь-якій точці x
+def evaluate_spline(x_val, x_data, a, b, c, d):
+    n = len(x_data) - 1
+    # Шукаємо, до якого відрізка належить заданий x_val
+    for i in range(n):
+        if x_data[i] <= x_val <= x_data[i + 1]:
+            dx = x_val - x_data[i]
+            return a[i] + b[i] * dx + c[i] * (dx ** 2) + d[i] * (dx ** 3)
+
+    # На випадок похибок округлення (якщо x_val трохи більше за останній вузол)
+    dx = x_val - x_data[-2]
+    return a[-1] + b[-1] * dx + c[-1] * (dx ** 2) + d[-1] * (dx ** 3)
 
 
-nodes_list = [5, 10, 20]
-x_dense = np.linspace(-1, 1, 500)
-y_true = runge_func(x_dense)
+# Отримуємо коефіцієнти сплайна, використовуючи вашу ж функцію з п.2
+# Вони створять ідеальну плавну лінію через 5 експериментальних точок
+a_coef, b_coef, c_coef, d_coef = cubic_splines_coefficients(x_data, y_data, False)
+
+# Генеруємо 500 точок для еталонної кривої
+x_dense = np.linspace(min(x_data), max(x_data), 500)
+y_true = [evaluate_spline(x, x_data, a_coef, b_coef, c_coef, d_coef) for x in x_dense]
 
 plt.figure(figsize=(12, 6))
-plt.plot(x_dense, y_true, label="Справжня функція f(x)", color='black', linewidth=2)
+plt.plot(x_dense, y_true, label="Еталонна крива", color='black', linewidth=2)
+plt.scatter(x_data, y_data, color='red', zorder=5, label="Дані (5 точок)", s=50)
+
+# Щоб уникнути переповнення пам'яті (float overflow) при зведенні 160000 у 15-й степінь,
+# тимчасово зменшуємо масштаб X для обчислень Ньютона
+scale_x = 10000
+
+nodes_list = [10, 20, 30, 40]
 
 for n in nodes_list:
-    x_nodes = np.linspace(-1, 1, n)
-    y_nodes = runge_func(x_nodes)
+    # 1. Беремо n рівномірних точок з нашого еталонного сплайна
+    x_nodes = np.linspace(min(x_data), max(x_data), n)
+    y_nodes = [evaluate_spline(x, x_data, a_coef, b_coef, c_coef, d_coef) for x in x_nodes]
 
-    coefs = divided_differences(x_nodes, y_nodes)
-    y_interp = [newton_polynomial(coefs, x_nodes, xi) for xi in x_dense]
+    # 2. Масштабуємо вузли перед обчисленням полінома Ньютона
+    x_nodes_scaled = [x / scale_x for x in x_nodes]
+    x_dense_scaled = [x / scale_x for x in x_dense]
+
+    # 3. Будуємо поліном Ньютона
+    coefs = divided_differences(x_nodes_scaled, y_nodes)
+    y_interp = [newton_polynomial(coefs, x_nodes_scaled, xi) for xi in x_dense_scaled]
 
     plt.plot(x_dense, y_interp, label=f"Ньютон (n={n})", linestyle='--')
 
-    # Розрахунок похибки
-    error = np.max(np.abs(y_true - y_interp))
-    print(f"Максимальна похибка для {n} вузлів: {error:.4f}")
+    # 4. Рахуємо похибку відносно еталонної кривої
+    error = np.max(np.abs(np.array(y_true) - np.array(y_interp)))
+    print(f"Максимальна розбіжність для {n} вузлів: {error:.4f}")
 
-plt.title("Дослідження ефекту Рунге (Рівномірні вузли)")
-plt.xlabel("x")
-plt.ylabel("f(x)")
-plt.ylim(-0.5, 1.5)
+plt.title("Дослідження ефекту Рунге")
+plt.xlabel("Розмір датасету")
+plt.ylabel("Час (с)")
+plt.ylim(min(y_data) - 50, max(y_data) + 150)
 plt.legend()
 plt.grid(True)
 plt.show()
