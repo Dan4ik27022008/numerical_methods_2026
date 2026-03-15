@@ -178,7 +178,7 @@ def main():
 
     # Графік 2: Похибка
     plt.subplot(2, 1, 2)
-    plt.plot(x, error_y, 'g-', marker='x', label='Похибка $\epsilon(x)$')
+    plt.plot(x, error_y, 'g-', marker='.', label='Похибка $\epsilon(x)$')
     plt.axhline(0, color='black', linewidth=0.8, linestyle='--')
     plt.title('Похибка апроксимації')
     plt.xlabel('Місяць')

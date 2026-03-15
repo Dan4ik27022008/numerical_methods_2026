@@ -123,7 +123,7 @@ def lagrange_polynomial(x_data, y_data, x):
 # ==========================================
 # 4. Основний блок (Завдання 3 варіанту)
 # ==========================================
-#create_sample_csv()
+create_sample_csv()
 x_data, y_data = read_data("data.csv")
 
 print("Вхідні дані (розмір вибірки):", x_data)
@@ -144,17 +144,39 @@ print(f"Метод Лагранжа: {lagrange_pred:.2f} сек")
 
 # Графік для Варіанту 3
 x_vals = np.linspace(min(x_data), max(x_data), 500)
-y_newton = [newton_polynomial(newton_coefs, x_data, xi) for xi in x_vals]
 
 plt.figure(figsize=(10, 5))
-plt.plot(x_vals, y_newton, label="Інтерполяція Ньютона", color='blue')
-plt.scatter(x_data, y_data, color='red', zorder=5, label="Експериментальні дані")
+
+# Побудова ліній для 3, 4 та 5 вузлів
+# Кольори адаптовано для кращої видимості на світлому фоні
+nodes_configs = [
+    (3, '--', '#00acc1'),  # Блакитний пунктир
+    (4, '--', '#43a047'),  # Зелений пунктир
+    (5, '-', '#d81b60')  # Рожево-червоний суцільний
+]
+
+for n_nodes, ls, color in nodes_configs:
+    # Беремо перші n вузлів
+    x_nodes = x_data[:n_nodes]
+    y_nodes = y_data[:n_nodes]
+
+    # Обчислюємо коефіцієнти та значення полінома
+    coefs = divided_differences(x_nodes, y_nodes)
+    y_interp = [newton_polynomial(coefs, x_nodes, xi) for xi in x_vals]
+
+    # Малюємо лінію
+    plt.plot(x_vals, y_interp, label=f"Ньютон ({n_nodes} вузли)", color=color, linestyle=ls, linewidth=2)
+
+# Експериментальні дані (жовті точки)
+plt.scatter(x_data, y_data, color='#ffb300', zorder=5, s=60, label="Експериментальні дані")
+# Прогноз (зелений хрестик)
 plt.scatter([target_x], [newton_pred], color='green', marker='x', s=100, zorder=5, label=f"Прогноз ({target_x})")
+
 plt.title("Прогноз часу тренування моделі")
 plt.xlabel("Розмір датасету")
 plt.ylabel("Час (с)")
 plt.legend()
-plt.grid(True)
+plt.grid(True, alpha=0.5)  # Трохи прозоріша сітка для охайності
 plt.show()
 
 # ==========================================
