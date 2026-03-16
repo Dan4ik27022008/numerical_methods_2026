@@ -184,7 +184,6 @@ plt.show()
 # ==========================================
 print("\n--- Дослідницька частина: Ефект Рунге на базі датасету ---")
 
-
 # Власна функція для обчислення значення кубічного сплайна у будь-якій точці x
 def evaluate_spline(x_val, x_data, a, b, c, d):
     n = len(x_data) - 1
@@ -198,24 +197,25 @@ def evaluate_spline(x_val, x_data, a, b, c, d):
     dx = x_val - x_data[-2]
     return a[-1] + b[-1] * dx + c[-1] * (dx ** 2) + d[-1] * (dx ** 3)
 
-
 # Отримуємо коефіцієнти сплайна, використовуючи вашу ж функцію з п.2
 # Вони створять ідеальну плавну лінію через 5 експериментальних точок
 a_coef, b_coef, c_coef, d_coef = cubic_splines_coefficients(x_data, y_data, False)
 
 # Генеруємо 500 точок для еталонної кривої
 x_dense = np.linspace(min(x_data), max(x_data), 500)
-y_true = [evaluate_spline(x, x_data, a_coef, b_coef, c_coef, d_coef) for x in x_dense]
+y_true = np.array([evaluate_spline(x, x_data, a_coef, b_coef, c_coef, d_coef) for x in x_dense])
 
+# --- ПЕРШИЙ ГРАФІК: Інтерполяція (Ефект Рунге) ---
 plt.figure(figsize=(12, 6))
-plt.plot(x_dense, y_true, label="Еталонна крива", color='black', linewidth=2)
+plt.plot(x_dense, y_true, label="Еталонна крива (Сплайн)", color='black', linewidth=2)
 plt.scatter(x_data, y_data, color='red', zorder=5, label="Дані (5 точок)", s=50)
 
-# Щоб уникнути переповнення пам'яті (float overflow) при зведенні 160000 у 15-й степінь,
-# тимчасово зменшуємо масштаб X для обчислень Ньютона
+# Щоб уникнути переповнення пам'яті, тимчасово зменшуємо масштаб X
 scale_x = 10000
+nodes_list = [5, 10, 20]
 
-nodes_list = [10, 20, 30, 40]
+# Словник для збереження масивів похибок для другого графіка
+errors_dict = {}
 
 for n in nodes_list:
     # 1. Беремо n рівномірних точок з нашого еталонного сплайна
@@ -228,18 +228,38 @@ for n in nodes_list:
 
     # 3. Будуємо поліном Ньютона
     coefs = divided_differences(x_nodes_scaled, y_nodes)
-    y_interp = [newton_polynomial(coefs, x_nodes_scaled, xi) for xi in x_dense_scaled]
+    y_interp = np.array([newton_polynomial(coefs, x_nodes_scaled, xi) for xi in x_dense_scaled])
 
+    # Малюємо лінію інтерполяції
     plt.plot(x_dense, y_interp, label=f"Ньютон (n={n})", linestyle='--')
 
-    # 4. Рахуємо похибку відносно еталонної кривої
-    error = np.max(np.abs(np.array(y_true) - np.array(y_interp)))
-    print(f"Максимальна розбіжність для {n} вузлів: {error:.4f}")
+    # 4. Рахуємо масив похибок та зберігаємо його
+    current_error = np.abs(y_true - y_interp)
+    errors_dict[n] = current_error
+    print(f"Максимальна розбіжність для {n} вузлів: {np.max(current_error):.4f}")
 
 plt.title("Дослідження ефекту Рунге")
 plt.xlabel("Розмір датасету")
 plt.ylabel("Час (с)")
 plt.ylim(min(y_data) - 50, max(y_data) + 150)
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# --- Похибки інтерполяції ---
+plt.figure(figsize=(12, 6))
+
+# Стилі ліній: суцільна, пунктирна, штрихпунктирна (кольори залишаємо за замовчуванням)
+line_styles = {5: '-', 10: '-', 20: '-'}
+
+for n in nodes_list:
+    # Використовуємо стандартні кольори matplotlib, але різні стилі ліній
+    plt.plot(x_dense, errors_dict[n], label=f"Похибка для n={n}", linestyle=line_styles.get(n, '-'), linewidth=2)
+
+plt.title("Абсолютна похибка інтерполяції |f(x) - P(x)| (Ефект Рунге)")
+plt.xlabel("Розмір датасету")
+plt.ylabel("Похибка")
+# plt.yscale('log') # ВІДКЛЮЧЕНО: щоб отримати графік зі сплесками на краях як на скріншоті
 plt.legend()
 plt.grid(True)
 plt.show()
