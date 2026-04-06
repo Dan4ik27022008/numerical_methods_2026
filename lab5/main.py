@@ -2,9 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 
-print("=" * 60)
-print("     РЕЗУЛЬТАТИ ВИКОНАННЯ ЛАБОРАТОРНОЇ РОБОТИ №5")
-print("=" * 60)
 
 
 # --- 1. Задана функція ---
@@ -19,14 +16,12 @@ a, b = 0, 24
 # I0 = 1200 + 0 + 5 * sqrt(pi / 0.2) * erf(12 * sqrt(0.2))
 I0 = 1200 + 5 * math.sqrt(math.pi / 0.2) * math.erf(12 * math.sqrt(0.2))
 
-print(f"[Пункт 2] Точне (аналітичне) значення інтегралу I0: {I0:.12f}")
 
 x_fine = np.linspace(a, b, 1000)
 y_fine = f(x_fine)
 
-# =====================================================================
+
 # ГРАФІК 1: Сама функція та точний інтеграл (площа під кривою)
-# =====================================================================
 plt.figure(figsize=(10, 5))
 plt.plot(x_fine, y_fine, 'b-', linewidth=2, label='f(x)')
 plt.fill_between(x_fine, y_fine, alpha=0.3, color='skyblue', label=f'Площа (I0 ≈ {I0:.2f})')
@@ -48,32 +43,7 @@ def simpson(f, a, b, N):
     return (h / 3) * S
 
 
-# =====================================================================
-# ГРАФІК 2: Візуалізація методу Сімпсона (апроксимація параболами)
-# =====================================================================
-N_vis = 6
-x_vis = np.linspace(a, b, N_vis + 1)
-y_vis = f(x_vis)
-
-plt.figure(figsize=(10, 5))
-plt.plot(x_fine, y_fine, 'k--', alpha=0.5, label='Справжня f(x)')
-for i in range(0, N_vis, 2):
-    x_nodes = x_vis[i:i + 3]
-    y_nodes = y_vis[i:i + 3]
-    poly_coefs = np.polyfit(x_nodes, y_nodes, 2)
-    poly = np.poly1d(poly_coefs)
-    x_curve = np.linspace(x_nodes[0], x_nodes[-1], 50)
-    plt.plot(x_curve, poly(x_curve), 'r-', linewidth=2)
-    plt.fill_between(x_curve, poly(x_curve), alpha=0.4, label='Парабола Сімпсона' if i == 0 else "")
-    plt.scatter(x_nodes, y_nodes, color='red', zorder=5)
-
-plt.title(f'Пункт 3: Як працює формула Сімпсона (при N={N_vis})', fontsize=12)
-plt.grid(True, linestyle='--', alpha=0.7)
-plt.legend()
-plt.show()
-
 # --- 4. Дослідження залежності точності від N ---
-print("\n[Пункт 4] Пошук оптимального N_opt для точності eps = 1e-12...")
 N_vals = np.arange(10, 500, 2)
 errors = [abs(simpson(f, a, b, N) - I0) for N in N_vals]
 
@@ -85,25 +55,15 @@ while eps_opt > target_eps and N_opt < 5000:
     N_opt += 2
     eps_opt = abs(simpson(f, a, b, N_opt) - I0)
 
-print(f"  -> Знайдено N_opt: {N_opt}")
-print(f"  -> Точність eps_opt: {eps_opt:.1e}")
 
-# =====================================================================
-# ГРАФІК 3: Дослідження похибки від N (Лінійний та Логарифмічний масштаби)
-# =====================================================================
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
-ax1.plot(N_vals, errors, 'b.-')
-ax1.set_title('Звичайна шкала (спад похибки)')
-ax1.set_xlabel('Число розбиттів N')
-ax1.set_ylabel('Абсолютна похибка')
-ax1.grid(True)
-
-ax2.plot(N_vals, errors, 'r.-')
-ax2.set_yscale('log')
-ax2.set_title('Логарифмічна шкала')
-ax2.set_xlabel('Число розбиттів N')
-ax2.grid(True)
-fig.suptitle('Пункт 4: Залежність похибки методу Сімпсона від N', fontsize=14)
+# ГРАФІК 2: Дослідження похибки від N (Лінійний та Логарифмічний масштаби)
+plt.figure(figsize=(8, 5))
+plt.plot(N_vals, errors, 'r.-')
+plt.yscale('log')
+plt.title('Пункт 4: Залежність похибки методу Сімпсона від N', fontsize=14)
+plt.xlabel('Число розбиттів N')
+plt.ylabel('Абсолютна похибка (логарифмічна шкала)')
+plt.grid(True, linestyle='--', alpha=0.7)
 plt.show()
 
 # --- 5. Обчислення похибки для N0 ---
@@ -116,17 +76,10 @@ I_N0_2 = simpson(f, a, b, N0 // 2)
 I_N0_4 = simpson(f, a, b, N0 // 4)
 
 eps0 = abs(I_N0 - I0)
-print(f"\n[Пункт 5] Робота з базовим розбиттям N0")
-print(f"  -> N0 (кратне 8) = {N0}")
-print(f"  -> Інтеграл при N0: {I_N0:.12f}")
-print(f"  -> Похибка eps0: {eps0:.3e}")
 
 # --- 6. Метод Рунге-Ромберга ---
 I_R = I_N0 + (I_N0 - I_N0_2) / 15
 epsR = abs(I_R - I0)
-print(f"\n[Пункт 6] Уточнення за методом Рунге-Ромберга")
-print(f"  -> Уточнене значення I_R: {I_R:.12f}")
-print(f"  -> Похибка epsR: {epsR:.3e}")
 
 # --- 7. Метод Ейткена ---
 denom = 2 * I_N0_2 - (I_N0 + I_N0_4)
@@ -135,16 +88,9 @@ if denom != 0:
     I_E = (I_N0_2 ** 2 - I_N0 * I_N0_4) / denom
     epsE = abs(I_E - I0)
     p = (1 / np.log(2)) * np.log(abs((I_N0_4 - I_N0_2) / (I_N0_2 - I_N0)))
-    print(f"\n[Пункт 7] Уточнення за методом Ейткена")
-    print(f"  -> Уточнене значення I_E: {I_E:.12f}")
-    print(f"  -> Похибка epsE: {epsE:.3e}")
-    print(f"  -> Оцінка порядку методу p: {p:.4f}")
-else:
-    print("\n[Пункт 7] Метод Ейткена: знаменник рівний нулю, обчислення неможливе.")
 
-# =====================================================================
-# ГРАФІК 4: Порівняння похибок методів
-# =====================================================================
+
+# ГРАФІК 3: Порівняння похибок методів
 methods = [f'Базовий (N={N0})', 'Рунге-Ромберг', 'Ейткен']
 method_errors = [eps0, epsR, epsE]
 
@@ -188,15 +134,8 @@ tol_adapt = 1e-4
 I_adapt = adaptive_simpson(a, b, tol_adapt)
 eps_adapt = abs(I_adapt - I0)
 
-print(f"\n[Пункт 9] Адаптивний алгоритм (із заданою точністю tol={tol_adapt})")
-print(f"  -> Знайдене значення I_adapt: {I_adapt:.12f}")
-print(f"  -> Реальна похибка eps_adapt: {eps_adapt:.3e}")
-print(f"  -> Всього обчислено вузлів: {len(eval_points)}")
-print("=" * 60)
 
-# =====================================================================
-# ГРАФІК 5: Розподіл вузлів в адаптивному алгоритмі
-# =====================================================================
+# ГРАФІК 4: Розподіл вузлів в адаптивному алгоритмі
 points = sorted(list(eval_points))
 y_points = f(np.array(points))
 
@@ -216,3 +155,22 @@ ax2.grid(True, linestyle='--', alpha=0.7)
 
 plt.tight_layout()
 plt.show()
+
+# Вивід результатів
+print(f"Точне значення площі: {I0:.15f}")
+print(f"Оптимальне N: {N_opt}, Похибка: {abs(simpson(f, a, b, N_opt) - I0):.2e}")
+print("-" * 30)
+print(f"Результати для N0 = {N0}:")
+print(f"Метод Сімпсона: {I_N0:.15f}, Похибка: {abs(I_N0 - I0):.2e}")
+print(f"Метод Рунге:    {I_R:.15f}, Похибка: {abs(I_R - I0):.2e}")
+
+if denom != 0:
+    print(f"Метод Ейткена:  {I_E:.15f}, Похибка: {abs(I_E - I0):.2e}")
+    print(f"Порядок p (Ейткен): {p:.2f}")
+else:
+    print("Метод Ейткена: знаменник рівний нулю")
+
+print("-" * 30)
+print(f"Адаптивний алгоритм (tol={tol_adapt}):")
+print(f"Інтеграл:       {I_adapt:.15f}, Похибка: {abs(I_adapt - I0):.2e}")
+print(f"Кількість вузлів: {len(eval_points)}")
